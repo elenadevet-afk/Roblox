@@ -13,7 +13,7 @@
       
       #ufo-timer {
         position: absolute; top: 10px; right: 20px; width: 90px; height: 50px;
-        background: radial-gradient(ellipse at center, rgba(188, 19, 254, 0.8) 0%, rgba(0,0,0,0.6) 85%);
+        background: radial-gradient(ellipse at center, rgba(188, 19, 254, 0.8) 0%, rgba(0,0,0,0.4) 85%);
         border-radius: 50% 50% 40% 40%; border: 1px solid rgba(255,255,255,0.5);
         display: flex; align-items: center; justify-content: center;
         color: #fff; font-weight: bold; box-shadow: 0 0 15px #bc13fe;
@@ -23,22 +23,23 @@
 
       #quiz { 
         position: absolute; top: 35%; left: 50%; transform: translate(-50%, -50%); 
-        background: rgba(255, 255, 255, 0.05); 
-        border: 1px solid rgba(255, 255, 255, 0.15); 
+        background: rgba(255, 255, 255, 0.1); 
+        border: 1px solid rgba(188, 19, 254, 0.5); 
         border-radius: 24px; 
-        padding: 30px; width: 320px; color: white; text-align: center; z-index: 20; 
-        backdrop-filter: blur(10px); 
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        padding: 30px; width: 340px; color: white; text-align: center; z-index: 20; 
+        backdrop-filter: blur(12px); 
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         display: block;
       }
       
       .btn { 
-        background: rgba(255, 255, 255, 0.08); 
-        border: 1px solid rgba(188, 19, 254, 0.4); 
+        background: rgba(255, 255, 255, 0.1); 
+        border: 1px solid rgba(188, 19, 254, 0.6); 
         color: white; width: 100%; padding: 12px; margin: 8px 0; border-radius: 14px; 
         cursor: pointer; font-weight: bold; font-size: 15px; transition: 0.3s;
+        backdrop-filter: blur(5px);
       }
-      .btn:hover { background: rgba(188, 19, 254, 0.4); border-color: #fff; }
+      .btn:hover { background: rgba(188, 19, 254, 0.8); border-color: #fff; }
     </style>
   </head>
   <body>
@@ -50,7 +51,7 @@
     <div id="ufo-timer"><span id="tm-val">0s</span></div>
 
     <div id="quiz">
-        <div id="q-text" style="font-size:20px; font-weight:bold; margin-bottom:20px;"></div>
+        <div id="q-text" style="font-size:20px; font-weight:bold; margin-bottom:20px; text-shadow: 1px 1px 5px rgba(0,0,0,0.5);"></div>
         <div id="ans-box"></div>
     </div>
     <canvas id="gameCanvas"></canvas>
@@ -59,31 +60,48 @@
       const canvas = document.getElementById("gameCanvas");
       const ctx = canvas.getContext("2d");
 
-      // --- 1. ЗАГРУЗКА ПЕРСОНАЖА ---
+      function playJumpSound() {
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start();
+          osc.stop(audioCtx.currentTime + 0.3);
+        } catch(e) {}
+      }
+
       const heroImg = new Image();
-      // ЗАМЕНИ ТЕКСТ НИЖЕ НА СВОЮ ССЫЛКУ С GITHUB
       heroImg.src = "https://i.postimg.cc/T35r8zHP/Dizajn-bez-nazvania-(2)-(2).png"; 
 
+      // --- НОВЫЕ ИНТЕРЕСНЫЕ ЗАДАНИЯ ---
       const tasks = [
-        { q: "Как будет \"Книга\"?", a: ["Book", "Pen", "Table"], c: 0 },
-        { q: "I ___ a student.", a: ["is", "am", "are"], c: 1 },
-        { q: "Цвет \"Red\":", a: ["Синий", "Красный", "Белый"], c: 1 },
-        { q: "Apple - это...", a: ["Яблоко", "Груша", "Слива"], c: 0 },
-        { q: "Как будет \"Дом\"?", a: ["House", "Car", "Tree"], c: 0 },
-        { q: "How ___ you?", a: ["is", "am", "are"], c: 2 },
-        { q: "Cat - это...", a: ["Собака", "Кот", "Мышь"], c: 1 },
-        { q: "Water - это...", a: ["Огонь", "Вода", "Еда"], c: 1 },
-        { q: "One + Two = ?", a: ["Three", "Four", "Five"], c: 0 },
-        { q: "Sun - это...", a: ["Звезда", "Луна", "Солнце"], c: 2 },
-        { q: "Как будет \"Мама\"?", a: ["Sister", "Mother", "Brother"], c: 1 },
-        { q: "I like ___ apples.", a: ["green", "sleep", "run"], c: 0 },
-        { q: "Translate: \"Friend\"", a: ["Враг", "Друг", "Семья"], c: 1 },
-        { q: "Jump - это...", a: ["Бегать", "Прыгать", "Сидеть"], c: 1 }
+        { q: "I have wings but I am not a bird. I am a...", a: ["Bat", "Dog", "Fish"], c: 0 },
+        { q: "Which word is the odd one out?", a: ["Apple", "Banana", "Carrot"], c: 2 },
+        { q: "Look! The monkey ___ climbing the tree.", a: ["am", "is", "are"], c: 1 },
+        { q: "What is the opposite of \"Fast\"?", a: ["Quick", "Slow", "High"], c: 1 },
+        { q: "You go here to see old things and history:", a: ["Cinema", "Museum", "Park"], c: 1 },
+        { q: "Which animal is the tallest?", a: ["Elephant", "Giraffe", "Hippo"], c: 1 },
+        { q: "We have ten ___ on our feet.", a: ["fingers", "toes", "ears"], c: 1 },
+        { q: "What color do you get if you mix Red and White?", a: ["Pink", "Orange", "Purple"], c: 0 },
+        { q: "A person who flies a plane is a...", a: ["Doctor", "Chef", "Pilot"], c: 2 },
+        { q: "It is very big, blue and salty. It is the...", a: ["River", "Ocean", "Lake"], c: 1 },
+        { q: "Find the plural: One child, two ___.", a: ["childs", "children", "childrens"], c: 1 },
+        { q: "What do you use to draw a straight line?", a: ["Eraser", "Ruler", "Pencil case"], c: 1 },
+        { q: "Which month is the first month of the year?", a: ["December", "January", "February"], c: 1 },
+        { q: "I ___ my teeth every morning.", a: ["wash", "brush", "clean"], c: 1 }
       ];
 
       let cur = 0, lives = 3, mistakes = 0;
       let jumpT = 1, startPos = {x: 0, y: 0}, targetPos = {x: 0, y: 0};
       let seconds = 0, timerActive = true;
+      let isWin = false, victoryJumps = 0, victoryT = 0;
 
       setInterval(() => { if(timerActive) { seconds++; document.getElementById("tm-val").innerText = seconds + "s"; } }, 1000);
 
@@ -100,8 +118,8 @@
 
       for(let i=0; i < 15; i++) {
         plats.push({ 
-          x: (canvas.width * 0.05) + (i * 68), 
-          y: (canvas.height * 0.9) - (i * 24) 
+          x: (canvas.width * 0.05) + (i * 75), 
+          y: (canvas.height * 0.75) - (i * 20) 
         });
       }
 
@@ -119,18 +137,30 @@
         ctx.restore();
       }
 
-      // --- 2. ИСПРАВЛЕННАЯ ФУНКЦИЯ ПЕРСОНАЖА ---
       function drawHero(x, y, t) {
-        const bounce = Math.sin(t * Math.PI) * 60;
-        const px = x + pWidth/2 - 35; 
-        const py = y - 80 - bounce;
+        let bounce = 0;
+        
+        if (isWin && victoryJumps < 3) {
+            victoryT += 0.05;
+            bounce = Math.abs(Math.sin(victoryT * Math.PI)) * 100;
+            if (victoryT >= 1) {
+                victoryT = 0;
+                victoryJumps++;
+                playJumpSound();
+            }
+        } else {
+            bounce = Math.sin(t * Math.PI) * 150;
+        }
+
+        const hSize = 350; 
+        const px = x + pWidth/2 - hSize/2; 
+        const py = y - hSize - bounce + 80; 
 
         if (heroImg.complete) {
-            ctx.drawImage(heroImg, px, py, 70, 70);
+            ctx.drawImage(heroImg, px, py, hSize, hSize);
         } else {
-            // Заглушка пока грузится
             ctx.fillStyle = "#00f7ff";
-            ctx.fillRect(px + 20, py + 20, 30, 30);
+            ctx.fillRect(px + (hSize*0.4), py + (hSize*0.4), hSize*0.2, hSize*0.2);
         }
       }
 
@@ -139,16 +169,19 @@
         plats.forEach((p, i) => drawPlatform(p.x, p.y, i <= cur));
         
         if (jumpT < 1) {
-          jumpT += 0.05;
+          jumpT += 0.04;
           heroPos.x = startPos.x + (targetPos.x - startPos.x) * jumpT;
           heroPos.y = startPos.y + (targetPos.y - startPos.y) * jumpT;
+          
           if (jumpT >= 1) {
             jumpT = 1;
-            if (cur < 14) { 
+            if (cur === 14) {
+                isWin = true;
+                timerActive = false;
+                setTimeout(showFinal, 2500); 
+            } else {
                 document.getElementById("quiz").style.display = "block"; 
-                updateQuiz(); 
-            } else { 
-                timerActive = false; showFinal(); 
+                updateQuiz();
             }
           }
         }
@@ -166,6 +199,7 @@
           b.className = "btn"; b.innerText = t;
           b.onclick = () => {
             if(i === tasks[cur].c) {
+              playJumpSound();
               startPos = { x: heroPos.x, y: heroPos.y };
               cur++;
               targetPos = { x: plats[cur].x, y: plats[cur].y };
@@ -184,8 +218,8 @@
       function showFinal() {
         const q = document.getElementById("quiz");
         q.style.display = "block";
-        const isWin = lives > 0;
-        q.innerHTML = `<h2>${isWin ? "WELL DONE!" : "GAME OVER!"}</h2>
+        const won = lives > 0;
+        q.innerHTML = `<h2 style="color:#bc13fe; text-shadow: 0 0 10px rgba(188,19,254,0.5)">${won ? "YOU WIN!" : "GAME OVER"}</h2>
           <p>Time: ${seconds}s | Mistakes: ${mistakes}</p>
           <button class="btn" onclick="location.reload()">PLAY AGAIN</button>`;
       }
